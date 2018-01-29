@@ -1,6 +1,6 @@
 jQuery(document).ready(function ($) {
     // Set all variables to be used in scope
-    var frame,
+    var frame, 
         metaBox = $('#flipcard.postbox'), // Your meta box id here
         addFront = $('#upload_front'),
         delFront = $('#delete_front'),
@@ -14,11 +14,13 @@ jQuery(document).ready(function ($) {
     // ONCLICKS
     addFront.on('click', function (event) {
         event.preventDefault();
-        frame = openFrame("front", frame);
+        side = "front";
+        frame = openFrame(side, frame);
     });
     addBack.on('click', function (event) {
         event.preventDefault();
-        frame = openFrame("back", frame);
+        side = "back";
+        frame = openFrame(side, frame);
     });
     delFront.on('click', function (event) {
         event.preventDefault();
@@ -34,8 +36,9 @@ jQuery(document).ready(function ($) {
 function openFrame(side, frame) {
     // If the media frame already exists, reopen it.
     if (frame) {
+        addImage(side, frame);
         frame.open();
-        return;
+        return frame;
     }
     // Create a new media frame
     frame = wp.media({
@@ -44,6 +47,15 @@ function openFrame(side, frame) {
         multiple: false
     });
     // When an image is selected in the media frame...
+    addImage(side,frame);
+    // Finally, open the modal on click
+    frame.open();
+
+    return frame;
+}
+
+function addImage(side, frame){
+    frame.off('select');
     frame.on('select', function () {
         // Get media attachment details from the frame state
         var attachment = frame.state().get('selection').first().toJSON();
@@ -56,10 +68,6 @@ function openFrame(side, frame) {
         // Unhide the remove image link
         $('#delete_' + side).show();
     });
-    // Finally, open the modal on click
-    frame.open();
-
-    return frame;
 }
 
 function deleteImage(side) {
