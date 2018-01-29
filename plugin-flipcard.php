@@ -4,7 +4,9 @@ Plugin Name: flipcard
 Description: Create simple cards with text or pictures that flip over when moused over. Insert anywhere with shortcodes.
 */
 
-// plugin activation
+/* 
+    PLUGIN INSTALLATION
+*/
 function flipcard_setup_post_type() {
     // register the "flipcard" custom post type
     register_post_type('flipcard',
@@ -23,7 +25,6 @@ function flipcard_setup_post_type() {
     );
 }
 add_action( 'init', 'flipcard_setup_post_type' );
- 
 function flipcard_install() {
     // trigger our function that registers the custom post type
     flipcard_setup_post_type();
@@ -32,8 +33,6 @@ function flipcard_install() {
     flush_rewrite_rules();
 }
 register_activation_hook( 'plugin-flipcard.php', 'flipcard_install' );
-
-// plugin deactivation
 function flipcard_deactivation() {
     // unregister the post type, so the rules are no longer in memory
     unregister_post_type( 'flipcard' );
@@ -41,7 +40,6 @@ function flipcard_deactivation() {
     flush_rewrite_rules();
 }
 register_deactivation_hook( 'plugin-flipcard.php', 'flipcard_deactivation' );
-
 function flipcard_register_meta_boxes(){
     add_meta_box(
         'flipcard',
@@ -53,13 +51,37 @@ function flipcard_register_meta_boxes(){
 }
 add_action( 'add_meta_boxes', 'flipcard_register_meta_boxes' );
 
+function flipcard_enqueue_scripts(){
+    wp_enqueue_media();
+    wp_enqueue_script( 'flipcard_js', plugin_dir_url(__FILE__) . 'plugin-flipcard.js');
+}
+function flipcard_enqueue_styles(){
+    wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard.css');
+    wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard-shortcode.css');
+}
+add_action('admin_print_scripts','flipcard_enqueue_scripts');
+add_action('admin_print_styles','flipcard_enqueue_styles');
+// separate hook for flipcard shortcodes, and not all the js/css for creation and outside of admin pages
+function flipcard_enqueue_shortcode(){
+    wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard-shortcode.css');
+}
+add_action('wp_enqueue_scripts','flipcard_enqueue_shortcode');
+// removes the normal editor on flipcard posts
+add_action('init', 'init_remove_support',100);
+function init_remove_support(){
+    $post_type = 'flipcard';
+    remove_post_type_support( $post_type, 'editor');
+}
+
+/* 
+    FLIPCARD EDITOR META BOX
+*/
+// creates the metabox for the flipcard custom post type
 function get_flipcard_meta_box($post){
     // Add a nonce field so we can check for it later.
     wp_nonce_field( 'flipcard_nonce_action', 'flipcard_nonce_field' );
-
     // Get WordPress' media upload URL
     $upload_link = esc_url( get_upload_iframe_src( 'image', $post->ID ) );
-
     // Retrieve flipcard post meta data
     $flipcard_data = get_post_meta( $post->ID, 'flipcard', true );
     // Validate returned data
@@ -78,9 +100,14 @@ function get_flipcard_meta_box($post){
     if ($has_back_img) $back_image_url = wp_get_attachment_image_url($back_image_id, [300,200]);
     
     ?>
-    Please ensure attached images are 3:2 (width:height).<br>
-    Copy and paste this shortcode into any page or post to display this flipcard.<br>
-    <span class="highlight_shortcode">[flipcard id='<?php echo get_the_ID() ?>']</span>
+
+    <!-- HTML for flipcard creation form -->
+    <div class="flipcard_info">
+        Please ensure attached images are 300px wide and 200px tall; or maintain a 3:2 aspect ratio.
+        <br>
+        Copy and paste this shortcode into any page or post to display this flipcard.<br>
+        <span class="highlight_shortcode">[flipcard id='<?php echo get_the_ID() ?>']</span>
+    </div>
     <table style="width:100%">
         <tr>
             <td>
@@ -143,23 +170,6 @@ function get_flipcard_meta_box($post){
     <?php
 }
 
-
-function flipcard_enqueue_scripts(){
-    wp_enqueue_media();
-    wp_enqueue_script( 'flipcard_js', plugin_dir_url(__FILE__) . 'plugin-flipcard.js');
-}
-function flipcard_enqueue_styles(){
-    wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard.css');
-}
-add_action('admin_print_scripts','flipcard_enqueue_scripts');
-add_action('admin_print_styles','flipcard_enqueue_styles');
-
-// needed to add hook here so css would be included on normal pages, for the shortcode stuff
-function flipcard_enqueue_shortcode(){
-    wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard-shortcode.css');
-}
-add_action('wp_enqueue_scripts','flipcard_enqueue_shortcode');
-
 function save_flipcard_meta_form($post_id){
     // Check if our nonce is set.
     if ( ! isset( $_POST['flipcard_nonce_field'] ) ) {
@@ -187,6 +197,7 @@ function save_flipcard_meta_form($post_id){
     // check if url is good url
 
     // Sanitize user input.
+    //TODO allow html in text fields
     $flipcard_data = Array(
         'front_text'        => sanitize_text_field( $_POST['front_text'] ),
         'back_text'         => sanitize_text_field( $_POST['back_text'] ),
@@ -199,7 +210,9 @@ function save_flipcard_meta_form($post_id){
 }
 add_action( 'save_post', 'save_flipcard_meta_form' );
 
-
+/* 
+    FLIPCARD SHORTCODE
+*/
 add_shortcode("flipcard","flipcard_shortcode");
 function flipcard_shortcode($atts){
     // combine given params with defaults 
@@ -230,7 +243,7 @@ function flipcard_shortcode($atts){
     if ($has_back_img) $back_image_url = wp_get_attachment_image_url($back_image_id, [300,200]);
 
     ?>
-
+    <!-- HTML to display the flipcard -->
     <div class="flipcard_container">
         <div class="flipcard_rotates">
             <div class="flipcard_front" <?php if ($has_front_img) : ?>style="background-image:url(<? echo $front_image_url ?>)"<?php endif ?>>
@@ -255,14 +268,4 @@ function flipcard_shortcode($atts){
     </div>
 
     <?php
-
-
-    //return 
-    //return '<span style="color:blue;">Hello world! My ID is '.$atts['id'].'</span>';
-}
-
-add_action('init', 'init_remove_support',100);
-function init_remove_support(){
-    $post_type = 'flipcard';
-    remove_post_type_support( $post_type, 'editor');
 }

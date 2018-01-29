@@ -14,11 +14,11 @@ jQuery(document).ready(function ($) {
     // ONCLICKS
     addFront.on('click', function (event) {
         event.preventDefault();
-        openFrame("front", frame);
+        frame = openFrame("front", frame);
     });
     addBack.on('click', function (event) {
         event.preventDefault();
-        openFrame("back", frame);
+        frame = openFrame("back", frame);
     });
     delFront.on('click', function (event) {
         event.preventDefault();
@@ -58,6 +58,8 @@ function openFrame(side, frame) {
     });
     // Finally, open the modal on click
     frame.open();
+
+    return frame;
 }
 
 function deleteImage(side) {

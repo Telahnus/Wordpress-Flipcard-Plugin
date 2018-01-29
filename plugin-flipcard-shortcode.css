@@ -36,4 +36,7 @@
     text-align: left;
     padding: 10px;
     font-size:.9em;
+
+    background-size: cover;
+    background-position: center;
 }
