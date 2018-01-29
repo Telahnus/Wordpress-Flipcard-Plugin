@@ -1,0 +1,22 @@
+td {
+    padding:1em;
+    width:50%;
+    vertical-align:top;
+}
+.image_preview{
+    max-width:300px;
+    max-height:200px;
+    width: 100%;
+}
+.image_preview img{
+    max-width:300px;
+    max-height:200px;
+    width: 100%;
+}
+input[type=url]{
+    width: 100%;
+    max-width: 300px;
+}
+.highlight_shortcode{
+    background: yellow;
+}

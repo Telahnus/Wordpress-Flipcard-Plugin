@@ -1,0 +1,39 @@
+.flipcard_container {
+    perspective: 1000px;
+    display: inline-block;
+    margin:20px;
+}
+.flipcard_container:hover .flipcard_rotates {
+    transform: rotateY(180deg); /* flip on hover */
+}
+.flipcard_container, .flipcard_front, .flipcard_back {
+    width: 300px;
+    height: 200px;
+}
+.flipcard_rotates {
+    transition: 0.6s; /* flip speed */
+    transform-style: preserve-3d;
+    position: relative;
+}
+.flipcard_front {
+    z-index: 2;
+    transform: rotateY(0deg);
+}
+.flipcard_back {
+    /* flip it hidden to start */
+    transform: rotateY(180deg); 
+}
+.flipcard_front, .flipcard_back { /* hide back of pane during swap */
+    box-shadow: 0px 0px 20px black;
+    backface-visibility: hidden;
+    background: rgba(50,50,50,0.3);
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius:20px;
+    box-sizing: border-box;
+
+    text-align: left;
+    padding: 10px;
+    font-size:.9em;
+}
