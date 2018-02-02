@@ -50,28 +50,25 @@ function flipcard_register_meta_boxes(){
     );
 }
 add_action( 'add_meta_boxes', 'flipcard_register_meta_boxes' );
-
+// ALL THE ENQUEUE CSS/JS STUFF
 function flipcard_enqueue_scripts(){
     wp_enqueue_media();
-    wp_enqueue_script( 'flipcard_js', plugin_dir_url(__FILE__) . 'plugin-flipcard.js');
-}
-function flipcard_enqueue_styles(){
+    wp_enqueue_style( 'wp-color-picker' );      
+    wp_enqueue_script( 'flipcard_js', plugins_url( 'plugin-flipcard.js', __FILE__ ), array( 'wp-color-picker' ), false, true ); 
     wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard.css');
     wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard-shortcode.css');
 }
-add_action('admin_print_scripts','flipcard_enqueue_scripts');
-add_action('admin_print_styles','flipcard_enqueue_styles');
-// separate hook for flipcard shortcodes, and not all the js/css for creation and outside of admin pages
+add_action('admin_enqueue_scripts','flipcard_enqueue_scripts');
 function flipcard_enqueue_shortcode(){
     wp_enqueue_style( 'flipcard_css', plugin_dir_url(__FILE__) . 'plugin-flipcard-shortcode.css');
 }
 add_action('wp_enqueue_scripts','flipcard_enqueue_shortcode');
 // removes the normal editor on flipcard posts
-add_action('init', 'init_remove_support',100);
 function init_remove_support(){
     $post_type = 'flipcard';
     remove_post_type_support( $post_type, 'editor');
 }
+add_action('init', 'init_remove_support',100);
 
 /* 
     FLIPCARD EDITOR META BOX
@@ -84,14 +81,16 @@ function get_flipcard_meta_box($post){
     $upload_link = esc_url( get_upload_iframe_src( 'image', $post->ID ) );
     // Retrieve flipcard post meta data
     $flipcard_data = get_post_meta( $post->ID, 'flipcard', true );
+    //print_r($flipcard_data);
+    
     // Validate returned data
     if (empty($flipcard_data)){
         echo "Could not find flipcard data!";
         //return;
     }
     // Process meta data
-    $front_text = $flipcard_data['front_text'];
-    $back_text = $flipcard_data['back_text'];
+    $front_text = htmlspecialchars_decode($flipcard_data['front_text']);
+    $back_text = htmlspecialchars_decode($flipcard_data['back_text']);
     $front_image_id = $flipcard_data['front_image_id'];
     $back_image_id = $flipcard_data['back_image_id'];
     $has_front_img = !empty($front_image_id);
@@ -109,17 +108,19 @@ function get_flipcard_meta_box($post){
         <span class="highlight_shortcode">[flipcard id='<?php echo get_the_ID() ?>']</span>
     </div>
     <table style="width:100%">
-        <tr>
+        <tr class="text_row">
             <td>
                 <label for="front_text">Front Text</label><br>
                 <textarea style="width:100%" id="front_text" name="front_text" rows=3><?php echo $front_text ?></textarea>
+                <input id="front_text_color" name="front_text_color" type="text" class="color-picker" value="<?php echo $flipcard_data['front_text_color']; ?>"/>
             </td>
             <td>
                 <label for="back_text">Back Text</label><br>
                 <textarea style="width:100%" id="back_text" name="back_text" rows=3><?php echo $back_text ?></textarea>
+                <input id="back_text_color" name="back_text_color" type="text" class="color-picker" value="<?php echo $flipcard_data['back_text_color']; ?>"/>
             </td>
         </tr>
-        <tr>
+        <tr class="image_row">
             <td>
                 <p>Front Image</p>
                 <div class="image_preview" id="preview_front">
@@ -141,6 +142,7 @@ function get_flipcard_meta_box($post){
                     </a>
                 </div>
                 <input id="id_front" name="id_front" type="hidden" value="<?php echo $front_image_id ?>" />
+                <input id="front_bkg_color" name="front_bkg_color" type="text" class="color-picker" value="<?php echo $flipcard_data['front_bkg_color']; ?>"/>
             </td>
             <td>
                 <p>Back Image</p>
@@ -163,6 +165,7 @@ function get_flipcard_meta_box($post){
                     </a>
                 </div>
                 <input id="id_back" name="id_back" type="hidden" value="<?php echo $back_image_id ?>" />
+                <input id="back_bkg_color" name="back_bkg_color" type="text" class="color-picker" value="<?php echo $flipcard_data['back_bkg_color']; ?>"/>
             </td>
         </tr>
     </table>
@@ -199,10 +202,14 @@ function save_flipcard_meta_form($post_id){
     // Sanitize user input.
     //TODO allow html in text fields
     $flipcard_data = Array(
-        'front_text'        => sanitize_text_field( $_POST['front_text'] ),
-        'back_text'         => sanitize_text_field( $_POST['back_text'] ),
+        'front_text'        => htmlspecialchars( $_POST['front_text'] ),
+        'back_text'         => htmlspecialchars( $_POST['back_text'] ),
         'front_image_id'    => sanitize_text_field( $_POST['id_front'] ),
         'back_image_id'     => sanitize_text_field( $_POST['id_back'] ),
+        'front_text_color'  => sanitize_text_field( $_POST['front_text_color'] ),
+        'back_text_color'   => sanitize_text_field( $_POST['back_text_color'] ),
+        'front_bkg_color'   => sanitize_text_field( $_POST['front_bkg_color'] ),
+        'back_bkg_color'    => sanitize_text_field( $_POST['back_bkg_color'] ),
     );
 
     // Update the meta field in the database.
@@ -233,36 +240,44 @@ function flipcard_shortcode($atts){
         return "";
     }
     // Process meta data
-    $front_text = $flipcard_data['front_text'];
-    $back_text = $flipcard_data['back_text'];
+    $front_text = htmlspecialchars_decode($flipcard_data['front_text']);
+    $front_text_color = $flipcard_data['front_text_color'];
+    $back_text = htmlspecialchars_decode($flipcard_data['back_text']);
+    $back_text_color = $flipcard_data['back_text_color'];
     $front_image_id = $flipcard_data['front_image_id'];
     $back_image_id = $flipcard_data['back_image_id'];
     $has_front_img = !empty($front_image_id);
     $has_back_img = !empty($back_image_id);
     if ($has_front_img) $front_image_url = wp_get_attachment_image_url($front_image_id, [300,200]);
     if ($has_back_img) $back_image_url = wp_get_attachment_image_url($back_image_id, [300,200]);
+    $front_bkg_color = $flipcard_data['front_bkg_color'];
+    $back_bkg_color = $flipcard_data['back_bkg_color'];
 
     ?>
     <!-- HTML to display the flipcard -->
     <div class="flipcard_container">
         <div class="flipcard_rotates">
-            <div class="flipcard_front" <?php if ($has_front_img) : ?>style="background-image:url(<? echo $front_image_url ?>)"<?php endif ?>>
-                <?php if (!empty($front_text)) : ?>
-                <div class="flipcard_text flipcard_front_text">
-                    <?php echo $front_text ?>
+            <div class="flipcard_front" 
+                <?php 
+                    $out = 'style="background-color:'.$front_bkg_color.';';
+                    if ($has_front_img) $out .= 'background-image:url('.$front_image_url.')';
+                    $out .= '"';
+                    echo $out;
+                ?>>
+                <div class="flipcard_text flipcard_front_text" style="color:<? echo $front_text_color ?>">
+                    <?php echo $front_text; ?>
                 </div>
-                <?php endif ?>
             </div>
             <div class="flipcard_back" 
-                <?php if ($has_back_img) : ?>
-                style="background-image:url(<? echo $back_image_url ?>)"
-                <?php endif ?>
-                >
-                <?php if (!empty($back_text)) : ?>
-                <div class="flipcard_text flipcard_back_text">
-                    <?php echo $back_text ?>
+                <?php 
+                    $out = 'style="background-color:'.$back_bkg_color.';';
+                    if ($has_back_img) $out .= 'background-image:url('.$back_image_url.')';
+                    $out .= '"';
+                    echo $out;
+                ?>>
+                <div class="flipcard_text flipcard_back_text" style="color:<? echo $back_text_color ?>">
+                    <?php echo $back_text; ?>
                 </div>
-                <?php endif ?>
             </div>
         </div>
     </div>

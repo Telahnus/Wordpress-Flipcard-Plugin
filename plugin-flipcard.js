@@ -30,6 +30,23 @@ jQuery(document).ready(function ($) {
         event.preventDefault();
         deleteImage("back");
     });
+
+    // COLORPICKER
+    var myOptions = {
+        defaultColor: "#000000",
+        palettes: true
+    };
+
+    $('.color-picker').wpColorPicker(myOptions);
+    $('.text_row').find('.wp-color-result-text').text("Text Color");
+    $('.image_row').find('.wp-color-result-text').text("Background Color");
+
+    if ($('#id_back').val()){
+        $('#back_bkg_color').closest('.wp-picker-container').hide();
+    }
+    if ($('#id_front').val()) {
+        $('#front_bkg_color').closest('.wp-picker-container').hide();
+    }
     
 });
 
@@ -63,10 +80,13 @@ function addImage(side, frame){
         $('#preview_' + side).append('<img src="' + attachment.url + '" />');
         // Send the attachment id to our hidden input
         $('#id_' + side).val(attachment.id);
-        // Hide the add image link
+        // Hide the add image link and bkgcolorpicker
         $('#upload_' + side).hide();
         // Unhide the remove image link
         $('#delete_' + side).show();
+
+        $('#' + side + '_bkg_color').closest('.wp-picker-container').hide();
+
     });
 }
 
@@ -79,4 +99,6 @@ function deleteImage(side) {
     $('#delete_' + side).hide();
     // Delete the image id from the hidden input
     $('#id_' + side).val('');
+
+    $('#' + side + '_bkg_color').closest('.wp-picker-container').show();
 }
